@@ -1,5 +1,23 @@
 #!/usr/bin/env python3
-# Copyright 2019 Brad Martin.  All rights reserved.
+# Copyright 2019-2020 Brad Martin.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 """This script supports serial communication with a Contec CMS50D+ pulse
 oximeter at firmware version 4.6, and potentially other similar sensors.
@@ -87,7 +105,8 @@ class Cms50Driver:
             expected_length = self.query_storage_data_length(
                 user=user, segment=segment)
         if expect_pi is None:
-            # TODO(bmartin) Query whether PI data is present (STORAGE_DATA_IDS).
+            # TODO(bmartin) Query whether PI data is present
+            # (STORAGE_DATA_IDS).
             expect_pi = False
         self._send_cmd(self._CMD_QUERY_STORAGE_DATA,
                        bytearray([user, segment]))
@@ -122,7 +141,7 @@ class Cms50Driver:
             numpy.ma.masked_equal(records.pi, 0xFFFF, copy=False)
             # Convert units after replacing magic binary values.
             assert dtype[-1][0] == 'pi'
-            dtype[-1][1] = numpy.float32
+            dtype[-1] = ('pi', numpy.float32)
             records = records.astype(dtype)
             records.pi /= 100.
         return records
@@ -154,13 +173,15 @@ class Cms50Driver:
             assert len(b) == 1
             if not (b[0] & 0x80):
                 return b[0]
-            raise ProtocolSyncError('Expected data type, got byte %r' % b.hex())
+            raise ProtocolSyncError(
+                'Expected data type, got byte %r' % b.hex())
 
     @staticmethod
     def _data_len_for_data_type(dt):
         C = Cms50Driver
         if dt in [C._DT_REALTIME_DATA, C._DT_DEVICE_IDS, C._DT_USER_INFO,
-                  C._DT_DEVICE_NOTICE, C._DT_STORAGE_DATA_IDS, C._DT_CTRL_CMDS]:
+                  C._DT_DEVICE_NOTICE, C._DT_STORAGE_DATA_IDS,
+                  C._DT_CTRL_CMDS]:
             return 7
         if dt in [C._DT_STORAGE_START_DATE, C._DT_STORAGE_DATA_LEN,
                   C._DT_STORAGE_DATA, C._DT_STORAGE_START_TIME]:
@@ -227,6 +248,7 @@ def write_csv(data, filename):
     numpy.savetxt(filename, txt.filled(fill_value=''), delimiter=',', fmt='%s',
                   header=','.join(data.dtype.names))
 
+
 def read_csv(filename):
     # The underlying data type for the fields will change to 32-bit from 8- or
     # 16-bit following a write/read cycle.  This is probably harmless.
@@ -271,7 +293,8 @@ def main():
         help='Download stored record to CSV with given filename')
     parser.add_argument(
         '-i', '--input-csv',
-        help='Skip device communication, and read data from given CSV filename')
+        help=('Skip device communication, and read data from given CSV '
+              'filename'))
     parser.add_argument(
         '-p', '--plot', action='store_true',
         help='Plot downloaded or loaded data')
